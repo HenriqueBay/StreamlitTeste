@@ -1,0 +1,1 @@
+select * from dbo.fetch_product_price;

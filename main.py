@@ -2,6 +2,7 @@ import streamlit as st
 from home import *
 from utils import *
 import random
+from db_connector import *
 
 # A IDENTAÇÃO NO CÓDIGO É A IDENTAÇÃO NO SITE
 
@@ -89,8 +90,29 @@ button = st.button("Mostrar Home", on_click=my_function)
 if button:
     st.write("Os dados foram salvos")
 st.page_link("pages\info.py", label="Informações")
-st.page_link("pages\rtv_2.py", label="Informações")
 
 # Trava de preenchimento - Só é permitida a criação quando for preenchido todos os filtros
 # Aba observações - Deixar criada a página aqui (Aquela aba de explicação inicial)
 # Evitar erros
+
+
+def read_data():
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM dbo.fetch_dn')
+    users = cursor.fetchall()
+    cursor.close()
+    return users
+
+# Função para exibir dados na interface do Streamlit
+
+
+def show_data():
+    st.header('Dados dos Usuários')
+    users = read_data()
+    for user in users:
+        st.write(f'id_dn: {user[0]}, Nome: {user[1]}')
+        st.write(f'dn_name: {user[0]}, Nome: {user[1]}')
+
+
+# Executa a função para exibir dados
+show_data()
