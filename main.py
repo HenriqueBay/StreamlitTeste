@@ -96,23 +96,25 @@ st.page_link("pages\info.py", label="Informações")
 # Evitar erros
 
 
-def read_data():
-    cursor = connection.cursor()
-    cursor.execute('SELECT * FROM dbo.fetch_dn')
-    users = cursor.fetchall()
-    cursor.close()
-    return users
-
-# Função para exibir dados na interface do Streamlit
-
-
-def show_data():
-    st.header('Dados dos Usuários')
-    users = read_data()
-    for user in users:
-        st.write(f'id_dn: {user[0]}, Nome: {user[1]}')
-        st.write(f'dn_name: {user[0]}, Nome: {user[1]}')
+def get_table_data(connection, table_name):
+    try:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT * FROM {table_name}")
+        table_data = cursor.fetchall()
+        cursor.close()
+        return table_data
+    except Exception as e:
+        st.error(f"Erro ao obter dados da tabela {table_name}: {e}")
+        return None
 
 
-# Executa a função para exibir dados
-show_data()
+# Conecta ao banco de dados PostgreSQL
+if connection:
+    # Obtém dados da tabela
+    table_name = 'dbo.dim_regional'  # Nome da tabela que você deseja buscar
+    table_data = get_table_data(connection, table_name)
+    if table_data:
+        st.header(f"Dados da Tabela '{table_name}':")
+        st.write(table_data)
+    # Fecha a conexão
+    connection.close()
