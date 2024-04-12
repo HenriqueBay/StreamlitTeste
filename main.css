@@ -2,4 +2,12 @@
     color: blue;
 }
 
+.st-ak, .st-al, .st-bc, .st-bd, .st-be, .st-as, .st-bf, .st-bg, .st-ar, .st-bh, .st-bi, .st-bj, .st-bk {
+    width: 150px;
+    color: black;
+    border-color: black;
+}
 
+.main{
+    background-color:rgb(224, 249, 244, 0.5);
+}

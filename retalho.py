@@ -46,4 +46,26 @@ if connection:
     if table_data is not None:
         st.header(f"Dados da Tabela '{table_name}':")
         st.write(table_data)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+                col8, col9 = st.columns(2)
+
+        with col8:
+            selected_option1 = st.selectbox("Selecionar opção 1", ['Opção 1A', 'Opção 1B', 'Opção 1C'])
+
+        with col9:
+            selected_option2 = st.selectbox("Selecionar opção 2", ['Opção 2A', 'Opção 2B', 'Opção 2C'])
 '''

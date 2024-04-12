@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from st_aggrid import AgGrid, AgGridTheme, GridUpdateMode, GridOptionsBuilder, ColumnsAutoSizeMode
+from st_aggrid import AgGrid, AgGridTheme, GridUpdateMode, GridOptionsBuilder, AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import os
 import time
 from streamlit_option_menu import option_menu
