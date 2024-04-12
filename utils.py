@@ -10,7 +10,7 @@ from streamlit_extras.metric_cards import style_metric_cards
 import base64
 from st_aggrid.shared import JsCode
 from pathlib import Path
-
+import pymysql
 
 def kpi(box_color, font_color, fontsize,text_font_size ,align, icon, text, value):
     if box_color == "good":

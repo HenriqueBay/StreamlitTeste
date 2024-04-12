@@ -61,11 +61,47 @@ if connection:
         
         
         
-                col8, col9 = st.columns(2)
 
-        with col8:
-            selected_option1 = st.selectbox("Selecionar opção 1", ['Opção 1A', 'Opção 1B', 'Opção 1C'])
+def criar_aggrid(selected_client, connection):
+    with connection.cursor() as cursor:
+        # Consulta SQL para obter os nomes das marcas e os preços correspondentes
+        sql = "SELECT marca, preco_24_25 FROM teib.fetch_product_price"
+        cursor.execute(sql, (selected_client,))
+        data = cursor.fetchall()  # Lista de tuplas contendo marca e preço
 
-        with col9:
-            selected_option2 = st.selectbox("Selecionar opção 2", ['Opção 2A', 'Opção 2B', 'Opção 2C'])
+    # Criar DataFrame com os dados obtidos
+    df = pd.DataFrame(data, columns=['Marca', 'Preço'])
+
+    # Configurar as opções da grade
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column(
+        groupable=True, value=True, enableRowGroup=True, editable=True)
+    gb.configure_pagination(paginationAutoPageSize=True)
+    gb.configure_grid_options(domLayout='normal')
+    gridOptions = gb.build()
+
+    # Renderizar a grade
+    AgGrid(df, gridOptions=gridOptions, height=400)
+    
+    
+    
+    
+    
+def criar_aggrid(connection,selected_client):
+    with connection.cursor() as cursor:
+        sql = "SELECT marca, preco_24_25 FROM teib.fetch_product_price"
+        cursor.execute(sql, (selected_client,))
+        data = cursor.fetchall()
+
+    df = pd.DataFrame(data, columns=['Marca', 'Preço'])
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column(
+        groupable=True, value=True, enableRowGroup=True, editable=True)
+    gb.configure_pagination(paginationAutoPageSize=True)
+    gb.configure_grid_options(domLayout='normal')
+    gridOptions = gb.build()
+
+    # Renderizar a grade
+    AgGrid(df, gridOptions=gridOptions, height=400)
+
 '''
