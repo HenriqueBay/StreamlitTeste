@@ -1,107 +1,60 @@
 
 
 '''
-def region_data(connection, table_name):
-    try:
-        cursor = connection.cursor()
-        cursor.execute(f"SELECT  FROM {table_name}")
-        table_data = cursor.fetchall()
-        cursor.close()
-        columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(table_data, columns=columns)
-        return df
-    except Exception as e:
-        st.error(f"Erro ao obter dados da tabela {table_name}: {e}")
-        return None
+with detailPanel:
+                if selected_client:
+                    detailPanel.write(f"Cliente: {selected_client}")
 
+                    product_names = 'teib.fetch_product_price'
+                    selected_columns2 = ['id_marca', 'marca', 'preco_24_25']
 
-# ----------------------AGgrid
+                    product_names = get_table_data2(
+                        connection, product_names, selected_columns2)
 
-class ColetorDeDados:
-    def __init__(self, conn):
-        self.conn = conn
+                    if product_names:
+                        st.write(
+                            "Selecione o produto e insira a quantidade:")
+                        st.write("| Marca | Quantidade | Total |")
+                        st.write("| --- | --- | --- |")
 
+                    for product in product_names:
+                        id_marca = product[0]
+                        nome_marca = product[1]
+                        valor_str = product[2]
+                        valor = float(valor_str.replace('$', '').replace(
+                            ',', ''))  # Convertendo valor para float
 
-def fetch_data_from_table(connection, table_name):
-    try:
-        cursor = connection.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
-        table_data = cursor.fetchall()
-        cursor.close()
-        columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(table_data, columns=columns)
-        return df
-    except Exception as e:
-        st.error(f"Erro ao obter dados da tabela {table_name}: {e}")
-        return None
+                        st.write(f"| {nome_marca} |", end='')
+                        quantidade = st.number_input(
+                            '', value=0, step=1, key=f'quantidade_{id_marca}')
+                        total = quantidade * valor
+                        st.write(f" {quantidade} | {total:.2f} |")
 
+        else:
+            detailPanel.write("Nenhum produto encontrado")
 
-# Conectar ao banco de dados PostgreSQL
-if connection:
-    st.success("Conectado ao banco de dados PostgreSQL.")
+    else:
+        detailPanel.write("Selecione um cliente")
+        147 até 180
+--------------------------------------------------------------------------------------
 
-    # Obtém dados da tabela
-    table_name = 'dbo.dim_regional'  # Nome da tabela que você deseja buscar
-    table_data = fetch_data_from_table(connection, table_name)
-    if table_data is not None:
-        st.header(f"Dados da Tabela '{table_name}':")
-        st.write(table_data)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+                    for index, product in enumerate(product_names):
 
-def criar_aggrid(selected_client, connection):
-    with connection.cursor() as cursor:
-        # Consulta SQL para obter os nomes das marcas e os preços correspondentes
-        sql = "SELECT marca, preco_24_25 FROM teib.fetch_product_price"
-        cursor.execute(sql, (selected_client,))
-        data = cursor.fetchall()  # Lista de tuplas contendo marca e preço
+                        with st.container():
+                            col1, col2, col3 = st.columns(3)
 
-    # Criar DataFrame com os dados obtidos
-    df = pd.DataFrame(data, columns=['Marca', 'Preço'])
+                            with col1:
+                                product_name = st.selectbox(
+                                    'Produto:', product_names, index=product_names.index(product["name"]))
 
-    # Configurar as opções da grade
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(
-        groupable=True, value=True, enableRowGroup=True, editable=True)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_grid_options(domLayout='normal')
-    gridOptions = gb.build()
+                            with col2:
+                                product_quantity = st.number_input(
+                                    'Quantidade:',
+                                    value=product["quantity"]),
 
-    # Renderizar a grade
-    AgGrid(df, gridOptions=gridOptions, height=400)
-    
-    
-    
-    
-    
-def criar_aggrid(connection,selected_client):
-    with connection.cursor() as cursor:
-        sql = "SELECT marca, preco_24_25 FROM teib.fetch_product_price"
-        cursor.execute(sql, (selected_client,))
-        data = cursor.fetchall()
+                            with col3:
+                                st.write("Descrição...")
 
-    df = pd.DataFrame(data, columns=['Marca', 'Preço'])
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(
-        groupable=True, value=True, enableRowGroup=True, editable=True)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_grid_options(domLayout='normal')
-    gridOptions = gb.build()
-
-    # Renderizar a grade
-    AgGrid(df, gridOptions=gridOptions, height=400)
-
+                else:
+                    detailPanel.write("Selecione um cliente")
 '''
