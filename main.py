@@ -1,148 +1,134 @@
 import streamlit as st
-from home import *
+import pandas as pd
+import json
+import time
 from utils import *
-from db_connector import *
+from database import DBConnection
+from st_aggrid import AgGrid, AgGridTheme, GridUpdateMode, GridOptionsBuilder, AgGrid, GridOptionsBuilder, GridUpdateMode
+
+connection = DBConnection()
 
 
-# Session state
-
-if 'doc_cliente' not in st.session_state:
-    st.session_state['doc_cliente'] = None
-
-# A IDENTAÇÃO NO CÓDIGO É A IDENTAÇÃO NO SITE
-
-st.set_page_config(page_title="Tracking EIB", layout="wide")
-image = 'bayer-logo-0.png'
-st.image(image, use_column_width=False, width=100)
-st.title("Tracking EIB")
-st.markdown("""<h4 style='text-align: left; color: black;'>
-                    Não repara a bagunça, estamos em construção! :3</h4>""", unsafe_allow_html=True)
-st.page_link("pages\info.py",
-             label="Para informações de uso e regras, clique aqui⚠️")
-
-if "visibility" not in st.session_state:
-    st.session_state.visibility = "visible"
-    st.session_state.disabled = False
-
-load_bootstrap()
-with open("main.css") as f:
-    st.write(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-# ----------------------------------------- Primeira parte
-container = st.container()
-
-
-def get_table_data(connection, table_name, selected_columns):
+@st.cache_data
+def get_df_customers():
     try:
         cursor = connection.cursor()
-        column_list = ",".join(selected_columns)
-        cursor.execute(f"SELECT {column_list} FROM {table_name}")
-        table_data = cursor.fetchall()
-        cursor.close()
-        return table_data
+        columns = ['dn', 'regional', 'distrito',
+                   'rtv', 'atendimento', 'nome_cliente']
+        select_columns = ', '.join(columns)
+        cursor.execute(f'SELECT {select_columns} FROM teib.fetch_data limit 1000')
+        data = cursor.fetchall()
+        df = pd.DataFrame(data, columns=columns)
+        return df
     except Exception as e:
-        st.error(f"Erro ao obter dados da tabela {table_name}: {e}")
+        st.error(f'Erro de conexão: {str(e)}')
         return None
+    finally:
+        cursor.close()
 
 
-def get_table_data2(connection, product_names, selected_columns):
+@st.cache_data
+def get_df_products():
     try:
         cursor = connection.cursor()
-        column_list = ",".join(selected_columns)
-        cursor.execute(f"SELECT {column_list} FROM {product_names}")
-        table_data = cursor.fetchall()
-        cursor.close()
-        return table_data
-    except Exception as e:
-        st.error(f"Erro ao obter dados da tabela {product_names}: {e}")
+        columns = ['id_marca', 'marca', 'preco_24_25']
+        select_columns = ', '.join(columns)
+        cursor.execute(
+            f'SELECT {select_columns} FROM teib.fetch_product_price')
+        data = cursor.fetchall()
+        df = pd.DataFrame(data, columns=columns)
+        return df
+    except:
+        st.error('Error de conexão')
         return None
+    finally:
+        cursor.close()
 
 
 def main():
+
+    st.set_page_config(page_title='Tracking EIB', layout='wide')
+
+    # Session state initialization
+    if 'customer_selection' not in st.session_state:
+        st.session_state['customer_selection'] = None
+    if 'visibility' not in st.session_state:
+        st.session_state.visibility = 'visible'
+        st.session_state.disabled = False
+
+    # Load bootstrap
+    st.markdown('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">', unsafe_allow_html=True)
+
+    # Load custom css
+    with open('main.css') as f:
+        st.write(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+    # Header
+    image = 'bayer-logo-0.png'
+    st.image(image, use_column_width=False, width=100)
+    st.title('Tracking EIB')
+    st.markdown('''<h4 style="text-align: left; color: black;">Não repara a bagunça, estamos em construção! :3</h4>''', unsafe_allow_html=True)
+    st.page_link('pages\info.py',
+                 label='Para informações de uso e regras, clique aqui⚠️')
+
+    # Content
     if connection:
-        table_name = 'teib.fetch_data'
-        selected_columns = ['dn', 'regional', 'distrito',
-                            'rtv', 'atendimento', 'nome_cliente']
+        df_customers = get_df_customers()
 
-        table_data = get_table_data(connection, table_name, selected_columns)
+        if df_customers is not None:
+            st.container()
 
-        if table_data:
-            c = st.container()
+            st.write('## Aplique os filtros para obter seu cliente:')
 
-            # Define a largura das colunas
-            listPanel, detailPanel = c.columns([1, 1])
+            # Customer selection
+            selected_rows = [st.session_state['customer_selection']['selectedItems'][0]['_selectedRowNodeInfo']['nodeRowIndex']] \
+                if st.session_state['customer_selection'] is not None \
+                and len(st.session_state['customer_selection']['selectedItems']) > 0 \
+                else []
 
-            # Cria tabela
+            # Dynamic main columns
+            listPanel, detailPanel = st.columns(2, gap='medium')
+
+            # Customer panel
             with listPanel:
-                df_table = pd.DataFrame(table_data, columns=selected_columns)
+                gd = GridOptionsBuilder.from_dataframe(df_customers)
+                gd.configure_pagination(
+                    enabled=True, paginationAutoPageSize=False, paginationPageSize=100)
+                gd.configure_side_bar(True)
+                gd.configure_default_column(editable=False, groupable=True)
+                gd.configure_selection(selection_mode="single", use_checkbox=True, pre_selected_rows=selected_rows)
+                gridoptions = gd.build()
+                gridoptions['alwaysShowHorizontalScroll'] = True
+                gridoptions['alwaysShowVerticalScroll'] = True
+                gridoptions['suppressHorizontalScroll'] = False
+                gridoptions['supressVerticalScroll'] = False
 
-                st.write('## Aplique os filtros para obter seu cliente:')
-                if table_data:
-                   # -------------------------- AGGRID clientes
-                    df = pd.DataFrame(table_data, columns=[
-                                      'dn', 'regional', 'distrito', 'rtv', 'atendimento', 'nome_cliente'])
+                AgGrid(df_customers,
+                    key='customer_selection',
+                    gridOptions=gridoptions,
+                    update_mode=GridUpdateMode.SELECTION_CHANGED,
+                    allow_unsafe_jscode=True,
+                    height=600,
+                    theme=AgGridTheme.BALHAM)
 
-                    gd = GridOptionsBuilder.from_dataframe(df)
-                    gd.configure_pagination(enabled=True,
-                                            paginationAutoPageSize=False,
-                                            paginationPageSize=17000)
-                    gd.configure_side_bar(True)
-                    gd.configure_default_column(editable=False,
-                                                groupable=True)
-                    gd.configure_selection(selection_mode="single",
-                                           use_checkbox=True)
-                    gridoptions = gd.build()
-                    gridoptions['alwaysShowHorizontalScroll'] = True
-                    gridoptions['alwaysShowVerticalScroll'] = True
-                    gridoptions['suppressHorizontalScroll'] = False
-                    gridoptions['supressVerticalScroll'] = False
+            # Detail panel
+            if detailPanel is not None:
 
-                    grid_table = AgGrid(df,
-                                        gridOptions=gridoptions,
-                                        update_mode=GridUpdateMode.SELECTION_CHANGED,
-                                        allow_unsafe_jscode=True,
-                                        height=600,
-                                        theme=AgGridTheme.BALHAM)
-                    sel_row = grid_table["selected_rows"]
-                    if sel_row:
-                        selected_row = sel_row[0]
-                        st.dataframe(sel_row)
-    # st.text_input(label="Nome do field",value=selected_row.get("field_name"),disabled=True)
-    # st.write(selected_row.get("hectares"))
+                def save_changes():
+                        time.sleep(2)  # ! Fake delay
+                        with detailPanel:
+                            st.success('Os dados foram salvos')
+                        st.session_state['customer_selection'] = None
 
-    # Cria detalhe
+                with detailPanel:
+                    customer = st.session_state['customer_selection']['selectedItems'][0]
+                    products = get_df_products()
 
-    with detailPanel:
-        product_names = 'teib.fetch_product_price'
-        selected_columns2 = ['id_marca', 'marca', 'preco_24_25']
+                    st.code(json.dumps(customer, indent=4))
 
-        product_names = get_table_data2(
-            connection, product_names, selected_columns2)
+                    st.button('Salvar dados', on_click=save_changes)
+# Main method call
 
 
-# ------------------------------------------------------------------------
-# AGGRID NA ESQUERDA, COLETANDO OS LCIENTES E SELECIONANDO TUDO CERTO, E NA DIREITA UM DATA EDITOR
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-container.markdown("</div>", unsafe_allow_html=True)
-container.markdown("<hr>", unsafe_allow_html=True)
-
-
-# -----------------------Botão home
-
-
-def my_function():
-    window = home()
-    window.display_home()
-
-
-button = st.button("Salvar dados", on_click=my_function)
-
-if button:
-    st.write("Os dados foram salvos")
-
-
-# Trava de preenchimento - Só é permitida a criação quando for preenchido todos os filtros
-# Aba observações - Deixar criada a página aqui (Aquela aba de explicação inicial)
-# Evitar erros
