@@ -1,6 +1,9 @@
 import base64
 from pathlib import Path
 
+def currency_to_number(x):
+    return float(x.replace('$', '').replace(',', ''))
+
 def format_float(x):
     x = '{:,.0f}'.format(x).replace(",", ".")
     html_x = f'''
@@ -10,10 +13,7 @@ def format_float(x):
 
 def format_money(x):
     x = 'R$ {:,.0f}'.format(x).replace(",", ".")
-    html_x = f'''
-    <p style="color:black; background-color:#F0F2F6; padding: 7px; border-radius: 7px;">{x}</p>
-    '''
-    return html_x
+    return x
 
 def img_to_bytes(img_path):
     img_bytes = Path(img_path).read_bytes()

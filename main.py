@@ -16,7 +16,7 @@ def get_df_customers():
         columns = ['dn', 'regional', 'distrito',
                    'rtv', 'atendimento', 'nome_cliente']
         select_columns = ', '.join(columns)
-        cursor.execute(f'SELECT {select_columns} FROM teib.fetch_data limit 1000')
+        cursor.execute(f'SELECT {select_columns} FROM teib.fetch_data limit 17000')
         data = cursor.fetchall()
         df = pd.DataFrame(data, columns=columns)
         return df
@@ -75,16 +75,23 @@ def main():
     if connection:
         df_customers = get_df_customers()
 
+        # Customer selection
+        has_customer_selected = st.session_state['customer_selection'] is not None \
+            and len(st.session_state['customer_selection']['selectedItems']) > 0
+        customer_index = st.session_state['customer_selection']['selectedItems'][0]['_selectedRowNodeInfo']['nodeRowIndex'] \
+            if has_customer_selected \
+            else None
+        customer_data = st.session_state['customer_selection']['selectedItems'][0] \
+            if has_customer_selected \
+            else None
+
         if df_customers is not None:
             st.container()
 
             st.write('## Aplique os filtros para obter seu cliente:')
 
             # Customer selection
-            selected_rows = [st.session_state['customer_selection']['selectedItems'][0]['_selectedRowNodeInfo']['nodeRowIndex']] \
-                if st.session_state['customer_selection'] is not None \
-                and len(st.session_state['customer_selection']['selectedItems']) > 0 \
-                else []
+            selected_rows = [customer_index] if customer_index is not None else []
 
             # Dynamic main columns
             listPanel, detailPanel = st.columns(2, gap='medium')
@@ -112,21 +119,64 @@ def main():
                     theme=AgGridTheme.BALHAM)
 
             # Detail panel
-            if detailPanel is not None:
 
-                def save_changes():
+            df_products = get_df_products()
+            products_names = list(df_products['marca'].unique())
+
+            with detailPanel:
+                st.write('## Após selecionado o cliente, identifique seu faturamento:')
+
+                if has_customer_selected:
+
+                    customer_document = customer_data['nome_cliente']
+                    customer_products = [] # get_customer_product_list(customer_document)
+
+                    def add_empty_product():
+                        customer_products.append({
+                            'name': None,
+                            'quantity': 1,
+                            'total_value': None
+                        })
+                        
+
+                    def save_changes():
                         time.sleep(2)  # ! Fake delay
                         with detailPanel:
                             st.success('Os dados foram salvos')
-                        st.session_state['customer_selection'] = None
+                            st.session_state['customer_selection'] = None
+                            st.rerun()
 
-                with detailPanel:
-                    customer = st.session_state['customer_selection']['selectedItems'][0]
-                    products = get_df_products()
+                    if not customer_products:
+                        add_empty_product()
 
-                    st.code(json.dumps(customer, indent=4))
 
+                    for  product in (customer_products):
+                        col1, col2, col3 = st.columns(3)
+                    with col1:
+                        product['name'] = st.selectbox(
+                            "Filtrar por Marca",
+                        products_names,
+                        products_names.index(product['name']) if product['name'] is not None else None,
+                        )
+                    with col2:
+                        product['quantity'] = st.number_input( 
+                            "Qtd",
+                            min_value=0,
+                            max_value=100,
+                            value=product['quantity'],
+                        )
+                    with col3:
+                            unit_price = df_products.loc[df_products['marca'] == product['name'], 'preco_24_25'].iloc[0] \
+                    if product['name'] is not None \
+                    else 0
+                    product['total_value'] = st.text_input('Total',value=format_money(product['quantity'] * currency_to_number(unit_price)) if unit_price != 0 else None, disabled=True,
+                        )
+                    if st.button('Adicionar'): add_empty_product()
                     st.button('Salvar dados', on_click=save_changes)
+
+                        
+
+                   
 # Main method call
 
 
